@@ -16,7 +16,8 @@
 
 namespace atd {
 
-Monitors::Monitors(SQLite::Database* db) : _db(db)
+Monitors::Monitors(SQLite::Database* db, const std::chrono::seconds& period)
+    : _db(db), _period(period)
 {
     _db->exec(
         "CREATE TABLE IF NOT EXISTS monitored_pairs("
@@ -40,7 +41,7 @@ Monitors::Monitors(SQLite::Database* db) : _db(db)
         "percent_change_1h real,"
         "percent_change_24h real,"
         "percent_change_7d real)");
-};
+}
 
 // begin currencies monitor function
 void Monitors::currencies(const std::vector<std::string>& currencies)
@@ -72,14 +73,15 @@ void Monitors::currencies(const std::vector<std::string>& currencies)
             query.reset();
 
             i++;
+            // required because of cmc api limits
             if ((i % 10) == 0) {
                 i = 0;
-                std::this_thread::sleep_for(1min);
+                std::this_thread::sleep_for(std::chrono::minutes(1));
             }
         }
-        std::this_thread::sleep_for(15min);
+        std::this_thread::sleep_for(_period);
     }
-};
+}
 // end currencies monitor function
 
 // begin pairs monitor function
@@ -111,10 +113,11 @@ void Monitors::pairs(const std::vector<currency_pair_t>& pairs)
                     query.reset();
                 }
             }
-            std::this_thread::sleep_for(2s);
+            // required because of cmc "api" limits
+            std::this_thread::sleep_for(std::chrono::seconds(2));
         }
-        std::this_thread::sleep_for(15min);
+        std::this_thread::sleep_for(_period);
     }
-};
+}
 // end pairs monitor function
-};  // namespace atd
+}  // namespace atd

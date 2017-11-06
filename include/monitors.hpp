@@ -24,15 +24,15 @@
 namespace atd {
 
 using namespace at;
-using namespace std::chrono_literals;
 
 class Monitors {
 private:
     SQLite::Database* _db;
+    std::chrono::seconds _period;
 
 public:
     ~Monitors(){};
-    Monitors(SQLite::Database* db);
+    Monitors(SQLite::Database* db, const std::chrono::seconds& period);
     // currencies monitor function
     void currencies(const std::vector<std::string>& currencies);
     // pairs monitor function

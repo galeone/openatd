@@ -23,7 +23,8 @@ Create a file named `config.json`. This file contains the information about the 
             ["eth", "btc"],
             ["ltc", "btc"],
             ["xmr", "usd"]
-        ]
+        ],
+        "period": 900
     },
     "markets": {
         "kraken": {

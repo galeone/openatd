@@ -100,7 +100,12 @@ std::map<std::string, std::unique_ptr<Exchange>> Config::exchanges()
         ret.insert(std::pair("shapeshift", std::make_unique<Shapeshift>()));
     }
     return ret;
-};
+}
+
+std::chrono::seconds Config::monitorPeriod()
+{
+    return std::chrono::seconds(_config["monitor"]["period"]);
+}
 
 std::vector<currency_pair_t> Config::monitorPairs()
 {
@@ -109,7 +114,7 @@ std::vector<currency_pair_t> Config::monitorPairs()
         pairs.push_back(currency_pair_t(pair.at(0), pair.at(1)));
     }
     return pairs;
-};
+}
 
 std::vector<std::string> Config::monitorCurrencies()
 {

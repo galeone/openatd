@@ -17,6 +17,7 @@
 #include <at/market.hpp>
 #include <at/namespace.hpp>
 #include <at/shapeshift.hpp>
+#include <chrono>
 #include <fstream>
 #include <json.hpp>
 #include <set>
@@ -41,5 +42,7 @@ public:
     std::vector<currency_pair_t> monitorPairs();
     // vector of currencies identifier to monitor
     std::vector<std::string> monitorCurrencies();
+    // returns the number of seconds to wait between snapshots
+    std::chrono::seconds monitorPeriod();
 };
 }  // end namespace atd
