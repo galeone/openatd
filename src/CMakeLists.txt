@@ -22,10 +22,6 @@ include_directories (
     ${OPENATD_INCLUDE_DIR}
 )
 
-message(status ${SQLITE3_INCLUDE_DIRS})
-message(status ${SQLITECPP_INCLUDE_DIR})
-message(status ${SQLITE3_LIBRARIES})
-
 target_link_libraries (openatd LINK_PUBLIC
     openat
     pthread
