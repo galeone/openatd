@@ -33,7 +33,7 @@ Create a file named `config.json`. This file contains the information about the 
             "apiSecret": "",
             "otp": ""
         }
-    }
+    },
     "strategies": {
         "btc": {
             "usd": {
