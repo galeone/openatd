@@ -147,7 +147,6 @@ std::map<currency_pair_t, std::unique_ptr<Strategy>> Config::strategies(
                     auto params = strategy_obj["params"];
                     float low = params["low"];
                     auto period = std::chrono::seconds(params["period"]);
-                    std::cout << "wat pew" << params["period"] << "\n";
                     ret[currency_pair_t(base, quote)] =
                         std::make_unique<BuyLowAndHodl>(monitors, chan, low,
                                                         period);
