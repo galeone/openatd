@@ -12,11 +12,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.*/
 
-#include <monitors.hpp>
+#include <atd/datamonitor.hpp>
 
 namespace atd {
 
-Monitors::Monitors(SQLite::Database* db, const std::chrono::seconds& period)
+DataMonitor::DataMonitor(SQLite::Database* db, const std::chrono::seconds& period)
     : _db(db), _period(period)
 {
     _db->exec(
@@ -41,10 +41,12 @@ Monitors::Monitors(SQLite::Database* db, const std::chrono::seconds& period)
         "percent_change_1h real,"
         "percent_change_24h real,"
         "percent_change_7d real)");
+
+    _cmc = new CoinMarketCap();
 }
 
 // begin currencies monitor function
-void Monitors::currencies(const std::vector<std::string>& currencies)
+void DataMonitor::currencies(const std::vector<std::string>& currencies)
 {
     SQLite::Statement query(
         *_db,
@@ -53,11 +55,11 @@ void Monitors::currencies(const std::vector<std::string>& currencies)
         "day_volume_usd,market_cap_usd,percent_change_1h,"
         "percent_change_24h,percent_change_7d) VALUES ("
         "?, datetime(?, 'unixepoch'), ?, ?, ?, ?, ?, ?, ?)");
-    auto cmc = CoinMarketCap();
+
     while (true) {
         auto i = 0;
         for (const auto& currency : currencies) {
-            auto tick = cmc.ticker(currency);
+            auto tick = _cmc->ticker(currency);
             SQLite::bind(query,
                          tick.symbol,  // currency
                          static_cast<long long int>(
@@ -85,7 +87,7 @@ void Monitors::currencies(const std::vector<std::string>& currencies)
 // end currencies monitor function
 
 // begin pairs monitor function
-void Monitors::pairs(const std::vector<currency_pair_t>& pairs)
+void DataMonitor::pairs(const std::vector<currency_pair_t>& pairs)
 {
     std::map<std::string, std::set<std::string>> aggregator;
     for (const auto& pair : pairs) {
@@ -97,10 +99,10 @@ void Monitors::pairs(const std::vector<currency_pair_t>& pairs)
                             "market,base,quote,day_volume_usd, day_volume_btc,"
                             "price_usd,price_btc,percent_volume)"
                             "VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-    auto cmc = CoinMarketCap();
+
     while (true) {
         for (const auto & [ base, quotes ] : aggregator) {
-            auto markets = cmc.markets(base);
+            auto markets = _cmc->markets(base);
             for (const auto& market : markets) {
                 if (quotes.find(market.pair.second) != quotes.end()) {
                     SQLite::bind(query, market.name, market.pair.first,
@@ -120,4 +122,89 @@ void Monitors::pairs(const std::vector<currency_pair_t>& pairs)
     }
 }
 // end pairs monitor function
+
+// an ordered vector of cm_market_t from "after" time to the last saved
+std::vector<cm_market_t> DataMonitor::pairHistory(const currency_pair_t& pair,
+                                               const std::time_t& after)
+{
+    SQLite::Statement query(*_db,
+                            "SELECT market,day_volume_usd,day_volume_btc,"
+                            "price_usd,price_btc,percent_volume,time "
+                            "FROM monitored_pairs "
+                            "WHERE base = ? AND quote = ? AND time >= ? "
+                            "ORDER BY time ASC");
+    SQLite::bind(query, pair.first, pair.second,
+                 static_cast<long long int>(after));
+    std::vector<cm_market_t> ret;
+    while (query.executeStep()) {
+        ret.push_back(cm_market_t{
+            .name = query.getColumn("market"),
+            .pair = pair,
+            .day_volume_usd = query.getColumn("day_volume_usd"),
+            .day_volume_btc = query.getColumn("day_volume_btc"),
+            .price_usd = query.getColumn("price_usd"),
+            .price_btc = query.getColumn("price_btc"),
+            .percent_volume = static_cast<float>(
+                query.getColumn("percent_volume").getDouble()),
+            .last_updated =
+                static_cast<std::time_t>(query.getColumn("time").getInt64()),
+        });
+    }
+    return ret;
+}
+
+// an ordered vector of cm_market_t from the beginning of monitoring to the
+// last seved
+std::vector<cm_market_t> DataMonitor::pairHistory(const currency_pair_t& pair)
+{
+    return pairHistory(pair, 0);
+}
+
+// an ordered vector of cm_ticker_t from "after" time to the last saved
+// id, name, rank available_supply and total_supply field are unset, DO NOT use
+// them
+std::vector<cm_ticker_t> DataMonitor::currencyHistory(const std::string& currency,
+                                                   const std::time_t& after)
+{
+    SQLite::Statement query(*_db,
+                            "SELECT time,price_btc,price_usd,"
+                            "day_volume_usd,market_cap_usd,percent_change_1h,"
+                            "percent_change_24h,percent_change_7d "
+                            "FROM monitored_currencies "
+                            "WHERE lower(currency) = lower(?) AND time >= ? "
+                            "ORDER BY time ASC");
+    SQLite::bind(query, currency, static_cast<long long int>(after));
+    std::vector<cm_ticker_t> ret;
+    while (query.executeStep()) {
+        ret.push_back(cm_ticker_t{
+            .id = "",
+            .name = "",
+            .symbol = currency,
+            .rank = 0,
+            .price_usd = query.getColumn("price_usd"),
+            .price_btc = query.getColumn("price_btc"),
+            .day_volume_usd = query.getColumn("day_volume_usd"),
+            .market_cap_usd = query.getColumn("market_cap_usd"),
+            .available_supply = 0,
+            .total_supply = 0,
+            .percent_change_1h = static_cast<float>(
+                query.getColumn("percent_change_1h").getDouble()),
+            .percent_change_24h = static_cast<float>(
+                query.getColumn("percent_change_24h").getDouble()),
+            .percent_change_7d = static_cast<float>(
+                query.getColumn("percent_change_7d").getDouble()),
+            .last_updated =
+                static_cast<std::time_t>(query.getColumn("time").getInt64()),
+        });
+    }
+    return ret;
+}
+
+// an ordered vector of cm_ticker_t from the beginning of monitoring to the
+// last seved
+std::vector<cm_ticker_t> DataMonitor::currencyHistory(const std::string& currency)
+{
+    return currencyHistory(currency, 0);
+}
+
 }  // namespace atd

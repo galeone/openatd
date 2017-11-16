@@ -22,7 +22,8 @@ Create a file named `config.json`. This file contains the information about the 
             ["xrp", "usd"],
             ["eth", "btc"],
             ["ltc", "btc"],
-            ["xmr", "usd"]
+            ["xmr", "usd"],
+            ["xmr", "btc"]
         ],
         "period": 900
     },
@@ -31,6 +32,31 @@ Create a file named `config.json`. This file contains the information about the 
             "apiKey": "",
             "apiSecret": "",
             "otp": ""
+        }
+    }
+    "strategies": {
+        "btc": {
+            "usd": {
+                "name": "HODL",
+                "params": ""
+            }
+        },
+        "xmr": {
+            "usd": {
+                "name": "BuyLowAndHodl",
+                "params": {
+                    "low": 0.2,
+                    "period": 3600
+                },
+            },
+            "btc": {
+                "name": "BuyLowSellHigh",
+                "params": {
+                    "low": 0.01,
+                    "high": 0.02,
+                    "period": 1800
+                }
+            }
         }
     }
 }

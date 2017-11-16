@@ -12,12 +12,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.*/
 
+#ifndef ATD_CONFIG_H_
+#define ATD_CONFIG_H_
+
 #include <at/exchange.hpp>
 #include <at/kraken.hpp>
 #include <at/market.hpp>
 #include <at/namespace.hpp>
 #include <at/shapeshift.hpp>
+#include <atd/buylowandhodl.hpp>
+#include <atd/channel.hpp>
+#include <atd/datamonitor.hpp>
+#include <atd/hodl.hpp>
+#include <atd/strategy.hpp>
 #include <chrono>
+#include <condition_variable>
 #include <fstream>
 #include <json.hpp>
 #include <set>
@@ -44,5 +53,10 @@ public:
     std::vector<std::string> monitorCurrencies();
     // returns the number of seconds to wait between snapshots
     std::chrono::seconds monitorPeriod();
+    // returns the defined strategies per pair
+    std::map<currency_pair_t, std::unique_ptr<Strategy>> strategies(
+        std::shared_ptr<DataMonitor>, std::shared_ptr<channel<order_t>>);
 };
 }  // end namespace atd
+
+#endif  // ATD_CONFIG_H_

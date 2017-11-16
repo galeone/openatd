@@ -12,7 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.*/
 
-#include <config.hpp>
+#include <atd/config.hpp>
 
 namespace atd {
 
@@ -24,7 +24,7 @@ inline constexpr int _hash(const char* value)
     }
     int ret = 0, i = 0;
     while (value[i] != '\0') {
-        ret |= value[i] << (i % 8);
+        ret ^= value[i] << (i % 8);
         i++;
     }
     return ret;
@@ -119,6 +119,58 @@ std::vector<currency_pair_t> Config::monitorPairs()
 std::vector<std::string> Config::monitorCurrencies()
 {
     return _config["monitor"]["currencies"];
+}
+
+std::map<currency_pair_t, std::unique_ptr<Strategy>> Config::strategies(
+    std::shared_ptr<DataMonitor> monitors,
+    std::shared_ptr<channel<at::order_t>> chan)
+{
+    std::map<currency_pair_t, std::unique_ptr<Strategy>> ret;
+
+    json strategies = _config["strategies"];
+    for (json::iterator it = strategies.begin(); it != strategies.end(); ++it) {
+        std::string base = it.key();
+        json object = it.value();
+        for (json::iterator quote_it = object.begin(); quote_it != object.end();
+             ++quote_it) {
+            std::string quote = quote_it.key();
+            auto strategy_obj = quote_it.value();
+            std::string name = strategy_obj["name"];
+            at::toupper(name);
+            switch (_hash(name.c_str())) {
+                case _hash("HODL"): {
+                    ret[currency_pair_t(base, quote)] =
+                        std::make_unique<Hodl>(monitors, chan);
+                    break;
+                }
+                case _hash("BUYLOWANDHODL"): {
+                    auto params = strategy_obj["params"];
+                    float low = params["low"];
+                    auto period = std::chrono::seconds(params["period"]);
+                    std::cout << "wat pew" << params["period"] << "\n";
+                    ret[currency_pair_t(base, quote)] =
+                        std::make_unique<BuyLowAndHodl>(monitors, chan, low,
+                                                        period);
+                    break;
+                }
+                    /*
+case _hash("BUYLOWSELLHIGH"): {
+auto params = strategy_obj["params"];
+float low = params["low"], high = params["high"];
+auto period = std::chrono::seconds(params["period"]);
+ret[currency_pair_t(base, quote)] =
+std::make_unique<BuyLowSellHigh>(monitors, chan,
+                                low, high, period);
+break;
+}*/
+                default:
+                    std::stringstream ss;
+                    ss << name << " is not a valid key";
+                    throw std::runtime_error(ss.str());
+            }
+        }
+    }
+    return ret;
 }
 
 }  // end namespace atd
