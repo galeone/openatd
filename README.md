@@ -45,8 +45,10 @@ Create a file named `config.json`. This file contains the information about the 
             "usd": {
                 "name": "BuyLowAndHodl",
                 "params": {
-                    "low": 0.2,
-                    "period": 3600
+                    "low": 0.3,
+                    "stats_period": 604800,
+                    "trade_period": 1200,
+                    "balance_percentage": 0.2
                 },
             },
             "btc": {
@@ -54,7 +56,9 @@ Create a file named `config.json`. This file contains the information about the 
                 "params": {
                     "low": 0.01,
                     "high": 0.02,
-                    "period": 1800
+                    "stats_period": 604800,
+                    "trade_period": 1200,
+                    "balance_percentage": 0.01
                 }
             }
         }

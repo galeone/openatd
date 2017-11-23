@@ -146,21 +146,30 @@ std::map<currency_pair_t, std::unique_ptr<Strategy>> Config::strategies(
                 case _hash("BUYLOWANDHODL"): {
                     auto params = strategy_obj["params"];
                     float low = params["low"];
-                    auto period = std::chrono::seconds(params["period"]);
+                    auto trade_period =
+                        std::chrono::seconds(params["trade_period"]);
+                    auto stats_period =
+                        std::chrono::seconds(params["stats_period"]);
+                    auto balance_percentage =
+                        params["balance_percentage"].get<float>();
                     ret[currency_pair_t(base, quote)] =
-                        std::make_unique<BuyLowAndHodl>(monitors, chan, low,
-                                                        period);
+                        std::make_unique<BuyLowAndHodl>(
+                            monitors, chan, low, balance_percentage,
+                            trade_period, stats_period);
                     break;
                 }
                     /*
 case _hash("BUYLOWSELLHIGH"): {
 auto params = strategy_obj["params"];
 float low = params["low"], high = params["high"];
-auto period = std::chrono::seconds(params["period"]);
+auto trade_period = std::chrono::seconds(params["trade_period"]);
+auto stats_period =
+    std::chrono::seconds(params["stats_period"]);
+auto balance_percentage = params["balance_percentage"].get<float>();
 ret[currency_pair_t(base, quote)] =
 std::make_unique<BuyLowSellHigh>(monitors, chan,
-                                low, high, period);
-break;
+                                low, high, balance_percentage, trade_period,
+stats_period); break;
 }*/
                 default:
                     std::stringstream ss;
