@@ -16,7 +16,8 @@
 
 namespace atd {
 
-DataMonitor::DataMonitor(SQLite::Database* db, const std::chrono::seconds& period)
+DataMonitor::DataMonitor(SQLite::Database* db,
+                         const std::chrono::seconds& period)
     : _db(db), _period(period)
 {
     _db->exec(
@@ -125,14 +126,15 @@ void DataMonitor::pairs(const std::vector<currency_pair_t>& pairs)
 
 // an ordered vector of cm_market_t from "after" time to the last saved
 std::vector<cm_market_t> DataMonitor::pairHistory(const currency_pair_t& pair,
-                                               const std::time_t& after)
+                                                  const std::time_t& after)
 {
-    SQLite::Statement query(*_db,
-                            "SELECT market,day_volume_usd,day_volume_btc,"
-                            "price_usd,price_btc,percent_volume,time "
-                            "FROM monitored_pairs "
-                            "WHERE base = ? AND quote = ? AND time >= ? "
-                            "ORDER BY time ASC");
+    SQLite::Statement query(
+        *_db,
+        "SELECT market,day_volume_usd,day_volume_btc,"
+        "price_usd,price_btc,percent_volume, strftime('%s', time) as time "
+        "FROM monitored_pairs "
+        "WHERE base = ? AND quote = ? AND time >= ? "
+        "ORDER BY time ASC");
     SQLite::bind(query, pair.first, pair.second,
                  static_cast<long long int>(after));
     std::vector<cm_market_t> ret;
@@ -163,16 +165,17 @@ std::vector<cm_market_t> DataMonitor::pairHistory(const currency_pair_t& pair)
 // an ordered vector of cm_ticker_t from "after" time to the last saved
 // id, name, rank available_supply and total_supply field are unset, DO NOT use
 // them
-std::vector<cm_ticker_t> DataMonitor::currencyHistory(const std::string& currency,
-                                                   const std::time_t& after)
+std::vector<cm_ticker_t> DataMonitor::currencyHistory(
+    const std::string& currency, const std::time_t& after)
 {
-    SQLite::Statement query(*_db,
-                            "SELECT time,price_btc,price_usd,"
-                            "day_volume_usd,market_cap_usd,percent_change_1h,"
-                            "percent_change_24h,percent_change_7d "
-                            "FROM monitored_currencies "
-                            "WHERE lower(currency) = lower(?) AND time >= ? "
-                            "ORDER BY time ASC");
+    SQLite::Statement query(
+        *_db,
+        "SELECT strftime('%s', time) as time,price_btc,price_usd,"
+        "day_volume_usd,market_cap_usd,percent_change_1h,"
+        "percent_change_24h,percent_change_7d "
+        "FROM monitored_currencies "
+        "WHERE lower(currency) = lower(?) AND time >= ? "
+        "ORDER BY time ASC");
     SQLite::bind(query, currency, static_cast<long long int>(after));
     std::vector<cm_ticker_t> ret;
     while (query.executeStep()) {
@@ -202,7 +205,8 @@ std::vector<cm_ticker_t> DataMonitor::currencyHistory(const std::string& currenc
 
 // an ordered vector of cm_ticker_t from the beginning of monitoring to the
 // last seved
-std::vector<cm_ticker_t> DataMonitor::currencyHistory(const std::string& currency)
+std::vector<cm_ticker_t> DataMonitor::currencyHistory(
+    const std::string& currency)
 {
     return currencyHistory(currency, 0);
 }
