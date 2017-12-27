@@ -69,7 +69,7 @@ void DataMonitor::currencies(const std::vector<std::string>& currencies)
                                                   // type
                          tick.price_btc, tick.price_usd, tick.day_volume_usd,
                          tick.market_cap_usd, tick.percent_change_1h,
-                         tick.percent_change_24h, tick.percent_change_24h);
+                         tick.percent_change_24h, tick.percent_change_7d);
             query.exec();
             // Reset prepared statement, so it's ready to be
             // re-executed
