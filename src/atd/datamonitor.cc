@@ -131,10 +131,10 @@ std::vector<cm_market_t> DataMonitor::pairHistory(const currency_pair_t& pair,
     SQLite::Statement query(
         *_db,
         "SELECT market,day_volume_usd,day_volume_btc,"
-        "price_usd,price_btc,percent_volume, strftime('%s', time) as time "
+        "price_usd,price_btc,percent_volume, strftime('%s', time) as timestamp "
         "FROM monitored_pairs "
-        "WHERE base = ? AND quote = ? AND time >= ? "
-        "ORDER BY time ASC");
+        "WHERE base = ? AND quote = ? AND time >= datetime(?, 'unixepoch') "
+        "ORDER BY timestamp ASC");
     SQLite::bind(query, pair.first, pair.second,
                  static_cast<long long int>(after));
     std::vector<cm_market_t> ret;
@@ -148,8 +148,8 @@ std::vector<cm_market_t> DataMonitor::pairHistory(const currency_pair_t& pair,
             .price_btc = query.getColumn("price_btc"),
             .percent_volume = static_cast<float>(
                 query.getColumn("percent_volume").getDouble()),
-            .last_updated =
-                static_cast<std::time_t>(query.getColumn("time").getInt64()),
+            .last_updated = static_cast<std::time_t>(
+                query.getColumn("timestamp").getInt64()),
         });
     }
     return ret;
@@ -170,12 +170,12 @@ std::vector<cm_ticker_t> DataMonitor::currencyHistory(
 {
     SQLite::Statement query(
         *_db,
-        "SELECT strftime('%s', time) as time,price_btc,price_usd,"
+        "SELECT strftime('%s', time) as timestamp,price_btc,price_usd,"
         "day_volume_usd,market_cap_usd,percent_change_1h,"
         "percent_change_24h,percent_change_7d "
         "FROM monitored_currencies "
-        "WHERE lower(currency) = lower(?) AND time >= ? "
-        "ORDER BY time ASC");
+        "WHERE lower(currency) = lower(?) AND time >= datetime(?, 'unixepoch') "
+        "ORDER BY timestamp ASC");
     SQLite::bind(query, currency, static_cast<long long int>(after));
     std::vector<cm_ticker_t> ret;
     while (query.executeStep()) {
@@ -196,8 +196,8 @@ std::vector<cm_ticker_t> DataMonitor::currencyHistory(
                 query.getColumn("percent_change_24h").getDouble()),
             .percent_change_7d = static_cast<float>(
                 query.getColumn("percent_change_7d").getDouble()),
-            .last_updated =
-                static_cast<std::time_t>(query.getColumn("time").getInt64()),
+            .last_updated = static_cast<std::time_t>(
+                query.getColumn("timestamp").getInt64()),
         });
     }
     return ret;
