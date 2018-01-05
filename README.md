@@ -4,6 +4,10 @@
 
 You can configure the daemon for monitoring your preferred crypto currencies and trade them, for you, on different markets.
 
+## Status
+
+Work in progress. Defining some basic strategy (BuyLowAndHodl is missing at the time of writing).
+
 ## Installation
 
 The `openatd` service collects and store markets information about the specified currencies in the configuration file. Data is stored in the SQLite database at `~/.config/openat/db.db3`.
