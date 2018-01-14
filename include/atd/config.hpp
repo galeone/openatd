@@ -20,9 +20,11 @@
 #include <at/market.hpp>
 #include <at/namespace.hpp>
 #include <at/shapeshift.hpp>
+#include <at/types.hpp>
 #include <atd/buylowandhodl.hpp>
 #include <atd/channel.hpp>
 #include <atd/datamonitor.hpp>
+#include <atd/dollarcostaveraging.hpp>
 #include <atd/hodl.hpp>
 #include <atd/strategy.hpp>
 #include <chrono>
@@ -55,7 +57,7 @@ public:
     std::chrono::seconds monitorPeriod();
     // returns the defined strategies per pair
     std::map<currency_pair_t, std::unique_ptr<Strategy>> strategies(
-        std::shared_ptr<DataMonitor>, std::shared_ptr<channel<order_t>>);
+        std::shared_ptr<DataMonitor>, std::shared_ptr<channel<message_t>>);
 };
 }  // end namespace atd
 

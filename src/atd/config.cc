@@ -123,7 +123,7 @@ std::vector<std::string> Config::monitorCurrencies()
 
 std::map<currency_pair_t, std::unique_ptr<Strategy>> Config::strategies(
     std::shared_ptr<DataMonitor> monitors,
-    std::shared_ptr<channel<at::order_t>> chan)
+    std::shared_ptr<channel<atd::message_t>> chan)
 {
     std::map<currency_pair_t, std::unique_ptr<Strategy>> ret;
 
@@ -158,19 +158,49 @@ std::map<currency_pair_t, std::unique_ptr<Strategy>> Config::strategies(
                             trade_period, stats_period);
                     break;
                 }
+                case _hash("DOLLARCOSTAVERAGING"): {
+                    auto params = strategy_obj["params"];
+                    atd::quantity_t buy_quantity = {};
+                    bool error = false;
+                    std::string date = params["date"];
+                    try {
+                        buy_quantity.fixed_amount =
+                            params.at("fixed_amount").get<float>();
+                    }
+                    catch (const std::out_of_range&) {
+                        error = true;
+                    }
+
+                    try {
+                        buy_quantity.balance_percentage =
+                            params.at("balance_percentage").get<float>();
+                    }
+                    catch (const std::out_of_range&) {
+                        if (error) {
+                            throw std::runtime_error(
+                                "DollarCostAveraging: fixed_amount or "
+                                "balance_percentage required in configuration");
+                        }
+                    }
+
+                    ret[currency_pair_t(base, quote)] =
+                        std::make_unique<DollarCostAveraging>(
+                            monitors, chan, date, buy_quantity);
+                    break;
+                }
                     /*
-case _hash("BUYLOWSELLHIGH"): {
-auto params = strategy_obj["params"];
-float low = params["low"], high = params["high"];
-auto trade_period = std::chrono::seconds(params["trade_period"]);
-auto stats_period =
+    case _hash("BUYLOWSELLHIGH"): {
+    auto params = strategy_obj["params"];
+    float low = params["low"], high = params["high"];
+    auto trade_period = std::chrono::seconds(params["trade_period"]);
+    auto stats_period =
     std::chrono::seconds(params["stats_period"]);
-auto balance_percentage = params["balance_percentage"].get<float>();
-ret[currency_pair_t(base, quote)] =
-std::make_unique<BuyLowSellHigh>(monitors, chan,
+    auto balance_percentage = params["balance_percentage"].get<float>();
+    ret[currency_pair_t(base, quote)] =
+    std::make_unique<BuyLowSellHigh>(monitors, chan,
                                 low, high, balance_percentage, trade_period,
-stats_period); break;
-}*/
+    stats_period); break;
+    }*/
                 default:
                     std::stringstream ss;
                     ss << name << " is not a valid key";
@@ -179,6 +209,6 @@ stats_period); break;
         }
     }
     return ret;
-}
+}  // namespace atd
 
 }  // end namespace atd
