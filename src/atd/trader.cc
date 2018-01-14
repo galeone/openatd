@@ -28,6 +28,12 @@ void Trader::intramarket(
             auto order = message.order;
             auto quantity = message.quantity;
             bool retry = true;
+            _console_logger->info(
+                "Trader::intramarket: received message. Order type: {}, Pair: "
+                "{}",
+                order.action == at::order_action_t::buy ? "BUY" : "SELL",
+                order.pair);
+
             while (retry) {
                 try {
                     // handle buy orders
@@ -173,7 +179,7 @@ void Trader::intramarket(
                 }
                 catch (const at::server_error& e) {
                     // catch only server error.
-                    // response_erro should make the process die
+                    // response_error should make the process die
                     // because it's a malformed request that have to be fixed
                     // instead, a server error is usually an overloaded server
                     // error

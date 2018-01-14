@@ -58,6 +58,7 @@ std::map<std::string, std::unique_ptr<Market>> Config::markets()
                         "kraken", std::make_unique<Kraken>(
                                       value["apiKey"], value["apiSecret"])));
                 }
+                std::cout << "Market [Kraken]: initialized\n";
             } break;
             default:
                 std::stringstream ss;
@@ -99,6 +100,7 @@ std::map<std::string, std::unique_ptr<Exchange>> Config::exchanges()
     if (ret.find("shapeshift") == ret.end()) {
         ret.insert(std::pair("shapeshift", std::make_unique<Shapeshift>()));
     }
+    std::cout << "Exchange [ShapeShift]: initialized\n";
     return ret;
 }
 
@@ -137,10 +139,12 @@ std::map<currency_pair_t, std::unique_ptr<Strategy>> Config::strategies(
             auto strategy_obj = quote_it.value();
             std::string name = strategy_obj["name"];
             at::toupper(name);
+
+            auto pair = currency_pair_t(base, quote);
             switch (_hash(name.c_str())) {
                 case _hash("HODL"): {
-                    ret[currency_pair_t(base, quote)] =
-                        std::make_unique<Hodl>(monitors, chan);
+                    ret[pair] = std::make_unique<Hodl>(monitors, chan);
+                    std::cout << pair << ": strategy HODL\n";
                     break;
                 }
                 case _hash("BUYLOWANDHODL"): {
@@ -152,10 +156,10 @@ std::map<currency_pair_t, std::unique_ptr<Strategy>> Config::strategies(
                         std::chrono::seconds(params["stats_period"]);
                     auto balance_percentage =
                         params["balance_percentage"].get<float>();
-                    ret[currency_pair_t(base, quote)] =
-                        std::make_unique<BuyLowAndHodl>(
-                            monitors, chan, low, balance_percentage,
-                            trade_period, stats_period);
+                    ret[pair] = std::make_unique<BuyLowAndHodl>(
+                        monitors, chan, low, balance_percentage, trade_period,
+                        stats_period);
+                    std::cout << pair << ": strategy BuyLowAndHodl\n";
                     break;
                 }
                 case _hash("DOLLARCOSTAVERAGING"): {
@@ -183,9 +187,9 @@ std::map<currency_pair_t, std::unique_ptr<Strategy>> Config::strategies(
                         }
                     }
 
-                    ret[currency_pair_t(base, quote)] =
-                        std::make_unique<DollarCostAveraging>(
-                            monitors, chan, date, buy_quantity);
+                    ret[pair] = std::make_unique<DollarCostAveraging>(
+                        monitors, chan, date, buy_quantity);
+                    std::cout << pair << ": strategy DollarCostAveraging\n";
                     break;
                 }
                     /*
@@ -196,10 +200,12 @@ std::map<currency_pair_t, std::unique_ptr<Strategy>> Config::strategies(
     auto stats_period =
     std::chrono::seconds(params["stats_period"]);
     auto balance_percentage = params["balance_percentage"].get<float>();
-    ret[currency_pair_t(base, quote)] =
+    ret[pair] =
     std::make_unique<BuyLowSellHigh>(monitors, chan,
                                 low, high, balance_percentage, trade_period,
-    stats_period); break;
+    stats_period);
+    std::cout << pair << ": strategy BuyLowSellHigh\n";
+    break;
     }*/
                 default:
                     std::stringstream ss;
