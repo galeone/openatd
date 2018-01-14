@@ -16,6 +16,7 @@
 #define ATD_HODL_STRATEGY_H_
 
 #include <atd/strategy.hpp>
+#include <atd/types.hpp>
 #include <chrono>
 
 namespace atd {
@@ -26,7 +27,7 @@ using namespace std::literals::chrono_literals;
 class Hodl : public Strategy {
 public:
     Hodl(std::shared_ptr<DataMonitor> monitors,
-         std::shared_ptr<channel<order_t>> chan)
+         std::shared_ptr<channel<message_t>> chan)
         : Strategy(monitors, chan)
     {
     }

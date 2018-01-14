@@ -19,6 +19,7 @@
 #include <at/namespace.hpp>
 #include <atd/channel.hpp>
 #include <atd/datamonitor.hpp>
+#include <atd/types.hpp>
 #include <future>
 #include <memory>
 #include <thread>
@@ -35,11 +36,11 @@ using namespace at;
 class Strategy {
 protected:
     std::shared_ptr<DataMonitor> _monitors;
-    std::shared_ptr<channel<order_t>> _chan;
+    std::shared_ptr<channel<message_t>> _chan;
 
 public:
     Strategy(std::shared_ptr<DataMonitor> monitors,
-             std::shared_ptr<channel<order_t>> chan)
+             std::shared_ptr<channel<message_t>> chan)
         : _monitors(monitors), _chan(chan)
     {
     }
