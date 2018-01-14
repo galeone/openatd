@@ -32,13 +32,13 @@ using namespace at;
 class Trader {
 private:
     std::shared_ptr<DataMonitor> _monitors;
-    std::shared_ptr<channel<order_t>> _chan;
+    std::shared_ptr<channel<message_t>> _chan;
     std::shared_ptr<spdlog::logger> _error_logger;
     std::shared_ptr<spdlog::logger> _console_logger;
 
 public:
     Trader(std::shared_ptr<DataMonitor> monitors,
-           std::shared_ptr<channel<order_t>> chan,
+           std::shared_ptr<channel<message_t>> chan,
            std::shared_ptr<spdlog::logger> error_logger,
            std::shared_ptr<spdlog::logger> console_logger)
         : _monitors(monitors),

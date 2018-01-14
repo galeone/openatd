@@ -22,9 +22,11 @@ void Trader::intramarket(
 
 {
     auto decisor = [&]() {
-        order_t order = {};
+        message_t message = {};
         _console_logger->info("Trader::intramarket: waiting");
-        while (_chan->get(order)) {
+        while (_chan->get(message)) {
+            auto order = message.order;
+            auto quantity = message.quantity;
             bool retry = true;
             while (retry) {
                 try {
@@ -35,23 +37,19 @@ void Trader::intramarket(
                         auto balance =
                             market.balance(order.pair.second);  // 100 EUR
 
-                        // The specified percentage of the balance of first to
-                        // use for buying second, is filled in the field
-                        // order.volume
-                        auto trade_balance =
-                            order.volume * balance;  // 0.2 * 100 = 20 EUR
-
-                        // How many items of first can I buy with this balance
-                        // given the requested price?
-                        auto volume =
-                            trade_balance /
-                            order.price;  // 20(EUR) / 60(EUR/LTC) = 0.33 LTC
-                        order.volume = volume;
-
-                        // update cost (it's not used by the server, but let's
-                        // keep track of it)
-                        order.cost = order.volume *
-                                     order.price;  // 0.33 *60 = 19.8 EUR/LTC
+                        // Use a percentage of the available balance
+                        double trade_balance = 0;
+                        if (quantity.balance_percentage > 0) {
+                            trade_balance = quantity.balance_percentage *
+                                            balance;  // 0.2 * 100 = 20 EUR
+                        }
+                        else {
+                            // Use a fixed amount, if avaiable, otherwise 0
+                            if (quantity.fixed_amount <= balance) {
+                                trade_balance =
+                                    quantity.fixed_amount;  // 20 EUR
+                            }
+                        }
 
                         // check if order can be fulfilled (in limits, hence
                         // positive) and there's no other order for the same
@@ -62,28 +60,34 @@ void Trader::intramarket(
                         // info.{maker,taker}_fee are a percentage. eg. 0.16
                         // means 0.16% of the cost
                         if (order.type == at::order_type_t::limit) {
+                            // In case of limit order, I can estimate the order
+                            // cost and the volume of first I want to buy
+
+                            // How many items of first can I buy with this
+                            // balance given the requested price?
+                            // 20(EUR) / 60(EUR/LTC) = 0.33 LTC
+                            order.volume = trade_balance / order.price;
+
+                            // keep track of the cost
+                            order.cost =
+                                order.volume *
+                                order.price;  // 0.33 *60 = 19.8 EUR/LTC
                             fee = order.cost * info.maker_fee /
                                   100;  // 19.8 * 0.0016 = 0.3164
                         }
                         else if (order.type == at::order_type_t::market) {
+                            // In case of market order, I don't fix the price
+                            // but I can get an estimate of the price I will pay
+                            // looking at the ticker
+                            order.price = market.ticker(order.pair).ask.price;
+                            order.volume = trade_balance / order.price;
+                            order.cost = order.volume * order.price;
                             fee = order.cost * info.taker_fee / 100;
                         }
 
                         if (order.volume >= info.limit.min &&
                             order.volume <= info.limit.max &&
                             balance - trade_balance - fee >= 0) {
-                            // if the balance is enough for buying the specified
-                            // amount at the desider price and pay the fee check
-                            // if there are already buy orders for this pari and
-                            // remove them then place this one
-                            for (auto& open_order : market.openOrders()) {
-                                if (open_order.action ==
-                                        at::order_action_t::buy &&
-                                    open_order.pair == order.pair) {
-                                    market.cancel(open_order);
-                                }
-                            }
-
                             _console_logger->info(
                                 "Trader::intramarket. BUY "
                                 "Pair: {} "
@@ -106,49 +110,47 @@ void Trader::intramarket(
                             market.balance(order.pair.first);  // 10 LTC
 
                         // The percentage of pair.first of the balance to sell
-                        auto trade_balance =
-                            order.volume * balance;  // 0.2 * 10 = 2 LTC
+                        double trade_balance = 0;
+                        if (quantity.balance_percentage > 0) {
+                            // 0.2 * 10 = 2 LTC
+                            trade_balance =
+                                quantity.balance_percentage * balance;
+                        }
+                        else {
+                            if (balance - quantity.fixed_amount >= 0) {
+                                // 10 - 2 = 8 => trade_balance = 2
+                                trade_balance = quantity.fixed_amount;
+                            }
+                        }
 
                         // How many items of pair.first can I sell
                         // given the specified trade balance?
-                        auto volume = trade_balance;  // 2 LTC
-                        order.volume = volume;
+                        order.volume = trade_balance;
 
-                        // let's use the order.cost field to store the expected
-                        // amount of pair.second to receive
-                        order.cost =
-                            order.volume * order.price;  // 2 * 60 = 60 EUR/LTC
-
-                        // check if order can be fulfilled (in limits, hence
-                        // positive) and there's no other order for the same
-                        // pair and the same action trade if it's present,
-                        // remove it and place the new order
                         auto info = market.info(order.pair);
                         double fee = 0;
                         // info.{maker,taker}_fee are a percentage. eg. 0.16
                         // means 0.16% of the cost
                         if (order.type == at::order_type_t::limit) {
+                            // In limit order I set the price, hence
+                            // the cost is what I expect to earn
+                            // 60 EUR/LTC (second) * 2 LTC = 120 EUR
+                            order.cost = order.price * order.volume;
                             fee = order.cost * info.maker_fee /
                                   100;  // 60 * 0.0016 = 0.096
                         }
                         else if (order.type == at::order_type_t::market) {
+                            // In market order I dont't fix the price but I can
+                            // get and estimate of the applied sell price using
+                            // the ticker
+                            order.price = market.ticker(order.pair).bid.price;
+                            order.cost = order.price * order.volume;
                             fee = order.cost * info.taker_fee / 100;
                         }
 
                         if (order.volume >= info.limit.min &&
                             order.volume <= info.limit.max &&
                             balance - trade_balance - fee >= 0) {
-                            // if the balance is enough for buying the specified
-                            // amount at the desider price and pay the fee check
-                            // if there are already buy orders for this pari and
-                            // remove them then place this one
-                            for (auto& open_order : market.openOrders()) {
-                                if (open_order.action ==
-                                        at::order_action_t::sell &&
-                                    open_order.pair == order.pair) {
-                                    market.cancel(open_order);
-                                }
-                            }
                             _console_logger->info(
                                 "Trader::intramarket. SELL "
                                 "Pair: {} "
@@ -156,7 +158,7 @@ void Trader::intramarket(
                                 "Trade balanace: {} "
                                 "Volume: {} "
                                 "Price: {} "
-                                "Estimated cost: {} "
+                                "Estimated return: {} "
                                 "Estimated fees: {}",
                                 order.pair, balance, trade_balance,
                                 order.volume, order.price, order.cost, fee);
@@ -166,7 +168,7 @@ void Trader::intramarket(
                     }
 
                     _console_logger->info("Trader::intramarket: waiting");
-                    order = {};
+                    message = {};
                     retry = false;
                 }
                 catch (const at::server_error& e) {
