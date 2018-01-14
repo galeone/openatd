@@ -17,6 +17,7 @@
 #include <atd/config.hpp>
 #include <atd/datamonitor.hpp>
 #include <atd/trader.hpp>
+#include <atd/types.hpp>
 #include <condition_variable>
 #include <stdexcept>
 #include <thread>
@@ -93,9 +94,9 @@ int main()
     // Create monitor object, used by the monitor threads
     auto monitors = std::make_shared<DataMonitor>(&db, config.monitorPeriod());
 
-    // Create channel of orders
-    std::shared_ptr<channel<at::order_t>> chan =
-        std::make_shared<channel<at::order_t>>();
+    // Create channel of message_t
+    std::shared_ptr<channel<atd::message_t>> chan =
+        std::make_shared<channel<atd::message_t>>();
 
     // Create the trading strategies
     // pass the monitor and the shared channel.
