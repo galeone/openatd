@@ -46,11 +46,12 @@ public:
         // support 2 formats: date is always UTC
 
         _monthly = false;
-        _date = {};
+        auto now = std::time(nullptr);
+        _date = *std::gmtime(&now);
+
         std::istringstream ss(date);
         ss >> std::get_time(&_date, _daily_format);
         if (ss.fail()) {
-            _date = {};
             std::istringstream ss(date);
             ss >> std::get_time(&_date, _monthly_format);
             if (ss.fail()) {
