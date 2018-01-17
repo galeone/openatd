@@ -22,12 +22,28 @@ std::time_t DollarCostAveraging::_next_date()
     auto now_tm = std::gmtime(&now);
     std::tm ret = _date;
     ret.tm_year = now_tm->tm_year;
+
     if (_monthly) {
         // if i've not reached the day of the month (and hour and minutes)
         // current month is the mont of the next date
-        if (now_tm->tm_mday <= _date.tm_mday &&
-            now_tm->tm_hour <= _date.tm_hour && now_tm->tm_min < _date.tm_min) {
+        if (now_tm->tm_mday < _date.tm_mday) {
             ret.tm_mon = now_tm->tm_mon;
+        }
+        else if (now_tm->tm_mday == _date.tm_mday) {
+            if (now_tm->tm_hour < _date.tm_hour) {
+                ret.tm_mon = now_tm->tm_mon;
+            }
+            else if (now_tm->tm_hour == _date.tm_hour) {
+                if (now_tm->tm_min < _date.tm_min) {
+                    ret.tm_mon = now_tm->tm_mon;
+                }
+                else {
+                    ret.tm_mon += 1;
+                }
+            }
+            else {
+                ret.tm_mon += 1;
+            }
         }
         else {
             // else, the next month is the actual +1
