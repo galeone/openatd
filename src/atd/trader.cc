@@ -16,6 +16,109 @@
 
 namespace atd {
 
+double market_buy_price(Market& market, at::currency_pair_t pair)
+{
+    return market.ticker(pair).bid.price;
+}
+double market_sell_price(Market& market, at::currency_pair_t pair)
+{
+    return market.ticker(pair).ask.price;
+}
+
+double get_buy_trade_balance(Market& market, const message_t& message)
+{
+    double trade_balance = 0;
+    double quote_balance = market.balance(message.order.pair.second);
+
+    if (quote_balance <= 0) {
+        return trade_balance;
+    }
+
+    // QUOTE
+    if (message.budget.quote.balance_percentage > 0 ||
+        message.budget.quote.fixed_amount > 0) {
+        auto budget = message.budget.quote;
+        if (budget.fixed_amount > 0) {
+            if (budget.fixed_amount <= quote_balance) {
+                trade_balance = budget.fixed_amount;  // 20 EUR
+            }
+        }
+        else {
+            trade_balance = budget.balance_percentage *
+                            quote_balance;  // 0.2 * 100 = 20 EUR
+        }
+    }
+    // BASE
+    else if (message.budget.base.balance_percentage > 0 ||
+             message.budget.base.fixed_amount > 0) {
+        auto budget = message.budget.base;
+        auto price = message.order.price > 0
+                         ? message.order.price
+                         : market_sell_price(market, message.order.pair);
+        if (budget.fixed_amount > 0) {
+            trade_balance = budget.fixed_amount * price;
+
+            if (trade_balance > quote_balance) {
+                trade_balance = 0;
+            }
+        }
+        else {
+            trade_balance = quote_balance * price;
+        }
+    }
+    return trade_balance;
+}
+
+double get_sell_trade_balance(Market& market, const message_t& message)
+{
+    double trade_balance = 0;
+    double base_balance = market.balance(message.order.pair.first);
+
+    if (base_balance <= 0) {
+        return trade_balance;
+    }
+    // BASE
+    if (message.budget.base.balance_percentage > 0 ||
+        message.budget.base.fixed_amount > 0) {
+        auto budget = message.budget.base;
+        if (budget.balance_percentage > 0) {
+            // 0.2 * 10 = 2 LTC
+            trade_balance = budget.balance_percentage * base_balance;
+        }
+        else {
+            if (base_balance - budget.fixed_amount > 0) {
+                // 10 - 2 = 8 => trade_balance = 2
+                trade_balance = budget.fixed_amount;
+            }
+        }
+    }
+    // QUOTE
+    else if (message.budget.quote.balance_percentage > 0 ||
+             message.budget.quote.fixed_amount > 0) {
+        auto budget = message.budget.quote;
+        auto price = message.order.price > 0
+                         ? message.order.price
+                         : market_buy_price(market, message.order.pair);
+        std::cout << "dong myt shit: " << price << std::endl;
+
+        if (budget.fixed_amount > 0) {
+            trade_balance = budget.fixed_amount * price;
+            std::cout << "price*fa= ";
+            std::cout << trade_balance << " vs base_balance: " << base_balance
+                      << std::endl;
+
+            if (trade_balance > base_balance) {
+                trade_balance = 0;
+            }
+        }
+        else {
+            trade_balance = budget.balance_percentage * price;
+        }
+    }
+
+    return trade_balance;
+}
+
 void Trader::intramarket(
     at::Market& market,
     const std::map<currency_pair_t, std::unique_ptr<Strategy>>& strategies)
@@ -26,10 +129,11 @@ void Trader::intramarket(
         _console_logger->info("Trader::intramarket: waiting");
         while (_chan->get(message)) {
             auto order = message.order;
-            auto quantity = message.quantity;
+
             bool retry = true;
             _console_logger->info(
-                "Trader::intramarket: received message. Order type: {}, Pair: "
+                "Trader::intramarket: received message. Order type: {}, "
+                "Pair: "
                 "{}",
                 order.action == at::order_action_t::buy ? "BUY" : "SELL",
                 order.pair);
@@ -38,40 +142,15 @@ void Trader::intramarket(
                 try {
                     // handle buy orders
                     if (order.action == at::order_action_t::buy) {
-                        // can I buy pair.first with pair.second?
-                        // eg: LTC/EUR
-                        auto balance =
-                            market.balance(order.pair.second);  // 100 EUR
+                        auto balance = market.balance(order.pair.second);
+                        auto trade_balance =
+                            get_buy_trade_balance(market, message);
 
-                        // Use a percentage of the available balance
-                        double trade_balance = 0;
-                        if (quantity.balance_percentage > 0) {
-                            trade_balance = quantity.balance_percentage *
-                                            balance;  // 0.2 * 100 = 20 EUR
-                        }
-                        else {
-                            // Use a fixed amount, if avaiable, otherwise 0
-                            if (quantity.fixed_amount <= balance) {
-                                trade_balance =
-                                    quantity.fixed_amount;  // 20 EUR
-                            }
-                        }
-
-                        // check if order can be fulfilled (in limits, hence
-                        // positive) and there's no other order for the same
-                        // pair and the same action trade if it's present,
-                        // remove it and place the new order
                         auto info = market.info(order.pair);
                         double fee = 0;
                         // info.{maker,taker}_fee are a percentage. eg. 0.16
                         // means 0.16% of the cost
                         if (order.type == at::order_type_t::limit) {
-                            // In case of limit order, I can estimate the order
-                            // cost and the volume of first I want to buy
-
-                            // How many items of first can I buy with this
-                            // balance given the requested price?
-                            // 20(EUR) / 60(EUR/LTC) = 0.33 LTC
                             order.volume = trade_balance / order.price;
 
                             // keep track of the cost
@@ -82,11 +161,9 @@ void Trader::intramarket(
                                   100;  // 19.8 * 0.0016 = 0.3164
                         }
                         else if (order.type == at::order_type_t::market) {
-                            // In case of market order, I don't fix the price
-                            // but I can get an estimate of the price I will pay
-                            // looking at the ticker
-                            order.price = market.ticker(order.pair).ask.price;
+                            order.price = market_sell_price(market, order.pair);
                             order.volume = trade_balance / order.price;
+
                             order.cost = order.volume * order.price;
                             fee = order.cost * info.taker_fee / 100;
                         }
@@ -106,7 +183,7 @@ void Trader::intramarket(
                                 order.pair, balance, trade_balance,
                                 order.volume, order.price, order.cost, fee);
 
-                            // market.place(order);
+                            market.place(order);
                         }
                     }
                     else {
@@ -114,20 +191,8 @@ void Trader::intramarket(
                         // can I sell pair.first(LTC) for pair.second(EUR)?
                         auto balance =
                             market.balance(order.pair.first);  // 10 LTC
-
-                        // The percentage of pair.first of the balance to sell
-                        double trade_balance = 0;
-                        if (quantity.balance_percentage > 0) {
-                            // 0.2 * 10 = 2 LTC
-                            trade_balance =
-                                quantity.balance_percentage * balance;
-                        }
-                        else {
-                            if (balance - quantity.fixed_amount >= 0) {
-                                // 10 - 2 = 8 => trade_balance = 2
-                                trade_balance = quantity.fixed_amount;
-                            }
-                        }
+                        auto trade_balance =
+                            get_sell_trade_balance(market, message);
 
                         // How many items of pair.first can I sell
                         // given the specified trade balance?
@@ -138,18 +203,12 @@ void Trader::intramarket(
                         // info.{maker,taker}_fee are a percentage. eg. 0.16
                         // means 0.16% of the cost
                         if (order.type == at::order_type_t::limit) {
-                            // In limit order I set the price, hence
-                            // the cost is what I expect to earn
-                            // 60 EUR/LTC (second) * 2 LTC = 120 EUR
                             order.cost = order.price * order.volume;
                             fee = order.cost * info.maker_fee /
                                   100;  // 60 * 0.0016 = 0.096
                         }
                         else if (order.type == at::order_type_t::market) {
-                            // In market order I dont't fix the price but I can
-                            // get and estimate of the applied sell price using
-                            // the ticker
-                            order.price = market.ticker(order.pair).bid.price;
+                            order.price = market_sell_price(market, order.pair);
                             order.cost = order.price * order.volume;
                             fee = order.cost * info.taker_fee / 100;
                         }
@@ -169,20 +228,28 @@ void Trader::intramarket(
                                 order.pair, balance, trade_balance,
                                 order.volume, order.price, order.cost, fee);
 
-                            // market.place(order);
+                            market.place(order);
                         }
                     }
 
+                    // Give feedback to the strategy
+                    message.feedback.market =
+                        std::shared_ptr<at::Market>(&market);
+                    if (message.feedback.order != nullptr) {
+                        message.feedback.order->put(order);
+                    }
+
                     _console_logger->info("Trader::intramarket: waiting");
+
                     message = {};
                     retry = false;
                 }
                 catch (const at::server_error& e) {
                     // catch only server error.
                     // response_error should make the process die
-                    // because it's a malformed request that have to be fixed
-                    // instead, a server error is usually an overloaded server
-                    // error
+                    // because it's a malformed request that have to be
+                    // fixed instead, a server error is usually an
+                    // overloaded server error
                     _error_logger->error(
                         "Trader::intramarket: at::server_error: {}", e.what());
                     retry = true;
