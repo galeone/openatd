@@ -81,7 +81,7 @@ void DollarCostAveraging::buy(const currency_pair_t &pair)
         order.action = at::order_action_t::buy;
         order.type = at::order_type_t::market;
         order.pair = pair;
-        message.quantity = _buy_quantity;
+        message.budget.quote = _buy_quantity;
         message.order = order;
         _chan->put(message);
         // Sleep for 1 second otherwise _next_date()
