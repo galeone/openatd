@@ -32,14 +32,13 @@ typedef struct {
 
 typedef struct {
     std::shared_ptr<at::Market> market;
-    std::shared_ptr<channel<at::order_t>> order;
+    at::order_t order;
 } feedback_t;
 
 typedef struct {
-public:
     at::order_t order;
     budget_t budget;
-    feedback_t feedback;
+    std::shared_ptr<channel<feedback_t>> feedback;
 } message_t;
 
 }  // end namespace atd

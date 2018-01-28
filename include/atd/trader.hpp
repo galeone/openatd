@@ -36,6 +36,13 @@ private:
     std::shared_ptr<spdlog::logger> _error_logger;
     std::shared_ptr<spdlog::logger> _console_logger;
 
+    double _market_buy_price(std::shared_ptr<Market>,
+                             const at::currency_pair_t&);
+    double _market_sell_price(std::shared_ptr<Market>,
+                              const at::currency_pair_t&);
+    double _buy_trade_balance(std::shared_ptr<Market>, const message_t&);
+    double _sell_trade_balance(std::shared_ptr<Market>, const message_t&);
+
 public:
     Trader(std::shared_ptr<DataMonitor> monitors,
            std::shared_ptr<channel<message_t>> chan,
@@ -50,8 +57,8 @@ public:
     ~Trader() {}
     // intramarket trading function, use it in a new thread
     void intramarket(
-        Market& market,
-        const std::map<currency_pair_t, std::unique_ptr<Strategy>>& strategies);
+        std::shared_ptr<Market> market,
+        const std::map<currency_pair_t, std::shared_ptr<Strategy>>& strategies);
 };
 }  // end namespace atd
 

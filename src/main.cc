@@ -185,7 +185,7 @@ int main()
                                  market.first);
             while (true) {
                 try {
-                    trader.intramarket(*market.second, strategies);
+                    trader.intramarket(market.second, strategies);
                 }
                 catch (...) {
                     // acquire lock

@@ -16,19 +16,23 @@
 
 namespace atd {
 
-double market_buy_price(Market& market, at::currency_pair_t pair)
+double Trader::_market_buy_price(std::shared_ptr<Market> market,
+                                 const at::currency_pair_t& pair)
 {
-    return market.ticker(pair).bid.price;
-}
-double market_sell_price(Market& market, at::currency_pair_t pair)
-{
-    return market.ticker(pair).ask.price;
+    return market->ticker(pair).bid.price;
 }
 
-double get_buy_trade_balance(Market& market, const message_t& message)
+double Trader::_market_sell_price(std::shared_ptr<Market> market,
+                                  const at::currency_pair_t& pair)
+{
+    return market->ticker(pair).ask.price;
+}
+
+double Trader::_buy_trade_balance(std::shared_ptr<Market> market,
+                                  const message_t& message)
 {
     double trade_balance = 0;
-    double quote_balance = market.balance(message.order.pair.second);
+    double quote_balance = market->balance(message.order.pair.second);
 
     if (quote_balance <= 0) {
         return trade_balance;
@@ -54,7 +58,7 @@ double get_buy_trade_balance(Market& market, const message_t& message)
         auto budget = message.budget.base;
         auto price = message.order.price > 0
                          ? message.order.price
-                         : market_sell_price(market, message.order.pair);
+                         : _market_sell_price(market, message.order.pair);
         if (budget.fixed_amount > 0) {
             trade_balance = budget.fixed_amount * price;
 
@@ -69,10 +73,11 @@ double get_buy_trade_balance(Market& market, const message_t& message)
     return trade_balance;
 }
 
-double get_sell_trade_balance(Market& market, const message_t& message)
+double Trader::_sell_trade_balance(std::shared_ptr<Market> market,
+                                   const message_t& message)
 {
     double trade_balance = 0;
-    double base_balance = market.balance(message.order.pair.first);
+    double base_balance = market->balance(message.order.pair.first);
 
     if (base_balance <= 0) {
         return trade_balance;
@@ -98,14 +103,10 @@ double get_sell_trade_balance(Market& market, const message_t& message)
         auto budget = message.budget.quote;
         auto price = message.order.price > 0
                          ? message.order.price
-                         : market_buy_price(market, message.order.pair);
-        std::cout << "dong myt shit: " << price << std::endl;
+                         : _market_buy_price(market, message.order.pair);
 
         if (budget.fixed_amount > 0) {
             trade_balance = budget.fixed_amount * price;
-            std::cout << "price*fa= ";
-            std::cout << trade_balance << " vs base_balance: " << base_balance
-                      << std::endl;
 
             if (trade_balance > base_balance) {
                 trade_balance = 0;
@@ -120,8 +121,8 @@ double get_sell_trade_balance(Market& market, const message_t& message)
 }
 
 void Trader::intramarket(
-    at::Market& market,
-    const std::map<currency_pair_t, std::unique_ptr<Strategy>>& strategies)
+    std::shared_ptr<Market> market,
+    const std::map<currency_pair_t, std::shared_ptr<Strategy>>& strategies)
 
 {
     auto decisor = [&]() {
@@ -142,11 +143,11 @@ void Trader::intramarket(
                 try {
                     // handle buy orders
                     if (order.action == at::order_action_t::buy) {
-                        auto balance = market.balance(order.pair.second);
+                        auto balance = market->balance(order.pair.second);
                         auto trade_balance =
-                            get_buy_trade_balance(market, message);
+                            _buy_trade_balance(market, message);
 
-                        auto info = market.info(order.pair);
+                        auto info = market->info(order.pair);
                         double fee = 0;
                         // info.{maker,taker}_fee are a percentage. eg. 0.16
                         // means 0.16% of the cost
@@ -161,7 +162,8 @@ void Trader::intramarket(
                                   100;  // 19.8 * 0.0016 = 0.3164
                         }
                         else if (order.type == at::order_type_t::market) {
-                            order.price = market_sell_price(market, order.pair);
+                            order.price =
+                                _market_sell_price(market, order.pair);
                             order.volume = trade_balance / order.price;
 
                             order.cost = order.volume * order.price;
@@ -172,7 +174,7 @@ void Trader::intramarket(
                             order.volume <= info.limit.max &&
                             balance - trade_balance - fee >= 0) {
                             _console_logger->info(
-                                "Trader::intramarket. BUY "
+                                "Trader::intramarket-> BUY "
                                 "Pair: {} "
                                 "Balance: {} "
                                 "Trade balanace: {} "
@@ -183,22 +185,22 @@ void Trader::intramarket(
                                 order.pair, balance, trade_balance,
                                 order.volume, order.price, order.cost, fee);
 
-                            market.place(order);
+                            market->place(order);
                         }
                     }
                     else {
                         // handle sell order
                         // can I sell pair.first(LTC) for pair.second(EUR)?
                         auto balance =
-                            market.balance(order.pair.first);  // 10 LTC
+                            market->balance(order.pair.first);  // 10 LTC
                         auto trade_balance =
-                            get_sell_trade_balance(market, message);
+                            _sell_trade_balance(market, message);
 
                         // How many items of pair.first can I sell
                         // given the specified trade balance?
                         order.volume = trade_balance;
 
-                        auto info = market.info(order.pair);
+                        auto info = market->info(order.pair);
                         double fee = 0;
                         // info.{maker,taker}_fee are a percentage. eg. 0.16
                         // means 0.16% of the cost
@@ -208,7 +210,8 @@ void Trader::intramarket(
                                   100;  // 60 * 0.0016 = 0.096
                         }
                         else if (order.type == at::order_type_t::market) {
-                            order.price = market_sell_price(market, order.pair);
+                            order.price =
+                                _market_sell_price(market, order.pair);
                             order.cost = order.price * order.volume;
                             fee = order.cost * info.taker_fee / 100;
                         }
@@ -217,7 +220,7 @@ void Trader::intramarket(
                             order.volume <= info.limit.max &&
                             balance - trade_balance - fee >= 0) {
                             _console_logger->info(
-                                "Trader::intramarket. SELL "
+                                "Trader::intramarket-> SELL "
                                 "Pair: {} "
                                 "Balance: {} "
                                 "Trade balanace: {} "
@@ -228,15 +231,16 @@ void Trader::intramarket(
                                 order.pair, balance, trade_balance,
                                 order.volume, order.price, order.cost, fee);
 
-                            market.place(order);
+                            market->place(order);
                         }
                     }
 
                     // Give feedback to the strategy
-                    message.feedback.market =
-                        std::shared_ptr<at::Market>(&market);
-                    if (message.feedback.order != nullptr) {
-                        message.feedback.order->put(order);
+                    if (message.feedback != nullptr) {
+                        feedback_t feedback;
+                        feedback.market = market;
+                        feedback.order = order;
+                        message.feedback->put(feedback);
                     }
 
                     _console_logger->info("Trader::intramarket: waiting");
