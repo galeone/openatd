@@ -26,6 +26,7 @@
 #include <atd/datamonitor.hpp>
 #include <atd/dollarcostaveraging.hpp>
 #include <atd/hodl.hpp>
+#include <atd/smallchanges.hpp>
 #include <atd/strategy.hpp>
 #include <chrono>
 #include <condition_variable>
@@ -45,10 +46,10 @@ public:
     ~Config() {}
     Config(const std::string& path);
     // markets returns a map of initialized markets from the configuration file
-    std::map<std::string, std::unique_ptr<Market>> markets();
+    std::map<std::string, std::shared_ptr<Market>> markets();
     // exchanges returns a map of initialized exchanges from the configuration
     // file
-    std::map<std::string, std::unique_ptr<Exchange>> exchanges();
+    std::map<std::string, std::shared_ptr<Exchange>> exchanges();
     // vector of currancy_pair_t to montor
     std::vector<currency_pair_t> monitorPairs();
     // vector of currencies identifier to monitor
@@ -56,7 +57,7 @@ public:
     // returns the number of seconds to wait between snapshots
     std::chrono::seconds monitorPeriod();
     // returns the defined strategies per pair
-    std::map<currency_pair_t, std::unique_ptr<Strategy>> strategies(
+    std::map<currency_pair_t, std::shared_ptr<Strategy>> strategies(
         std::shared_ptr<DataMonitor>, std::shared_ptr<channel<message_t>>);
 };
 }  // end namespace atd
