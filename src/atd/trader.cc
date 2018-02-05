@@ -122,7 +122,8 @@ double Trader::_sell_trade_balance(std::shared_ptr<Market> market,
 
 void Trader::intramarket(
     std::shared_ptr<Market> market,
-    const std::map<currency_pair_t, std::shared_ptr<Strategy>>& strategies)
+    const std::map<currency_pair_t, std::vector<std::shared_ptr<Strategy>>>&
+        strategies)
 
 {
     auto decisor = [&]() {
@@ -266,11 +267,13 @@ void Trader::intramarket(
     std::thread decisor_thread(decisor);
     std::vector<std::thread> buy_strategies;
     std::vector<std::thread> sell_strategies;
-    for (const auto & [ pair, strategy ] : strategies) {
-        sell_strategies.push_back(
-            std::thread(&Strategy::sell, strategy.get(), std::ref(pair)));
-        buy_strategies.push_back(
-            std::thread(&Strategy::buy, strategy.get(), std::ref(pair)));
+    for (const auto & [ pair, strategy_vector ] : strategies) {
+        for (const auto strategy : strategy_vector) {
+            sell_strategies.push_back(
+                std::thread(&Strategy::sell, strategy.get(), std::ref(pair)));
+            buy_strategies.push_back(
+                std::thread(&Strategy::buy, strategy.get(), std::ref(pair)));
+        }
     }
 
     // wait for endless threads
