@@ -57,8 +57,9 @@ public:
     // returns the number of seconds to wait between snapshots
     std::chrono::seconds monitorPeriod();
     // returns the defined strategies per pair
-    std::map<currency_pair_t, std::shared_ptr<Strategy>> strategies(
-        std::shared_ptr<DataMonitor>, std::shared_ptr<channel<message_t>>);
+    std::map<currency_pair_t, std::vector<std::shared_ptr<Strategy>>>
+        strategies(std::shared_ptr<DataMonitor>,
+                   std::shared_ptr<channel<message_t>>);
 };
 }  // end namespace atd
 

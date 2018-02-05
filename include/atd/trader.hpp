@@ -58,7 +58,8 @@ public:
     // intramarket trading function, use it in a new thread
     void intramarket(
         std::shared_ptr<Market> market,
-        const std::map<currency_pair_t, std::shared_ptr<Strategy>>& strategies);
+        const std::map<currency_pair_t, std::vector<std::shared_ptr<Strategy>>>&
+            strategies);
 };
 }  // end namespace atd
 
