@@ -43,14 +43,14 @@ quantity_t quantity_from_json(json obj)
     try {
         ret.fixed_amount = obj.at("fixed_amount").get<float>();
     }
-    catch (const std::out_of_range&) {
+    catch (const json::out_of_range&) {
         error = true;
     }
 
     try {
         ret.balance_percentage = obj.at("balance_percentage").get<float>();
     }
-    catch (const std::out_of_range&) {
+    catch (const json::out_of_range&) {
         if (error) {
             throw std::runtime_error(
                 obj.dump() +
