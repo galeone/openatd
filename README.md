@@ -6,7 +6,7 @@ You can configure the daemon for monitoring your preferred crypto currencies and
 
 ## Status
 
-Work in progress. Defining some basic strategy (BuyLowAndHodl is missing at the time of writing).
+**Work in progress. The code in the repo won't compile on your machine. There are missing classes that are not public (yet)**
 
 ## Installation
 
@@ -20,51 +20,62 @@ Create a file named `config.json`. This file contains the information about the 
 ```json
 {
     "monitor": {
-        "currencies": ["btc", "xrp", "eth", "ltc", "xmr"],
+        "currencies": [
+            "btc",
+            "xrp",
+            "eth",
+            "ltc",
+            "xmr"
+        ],
         "pairs": [
-            ["btc", "usd"],
-            ["xrp", "usd"],
-            ["eth", "btc"],
-            ["ltc", "btc"],
-            ["xmr", "usd"],
-            ["xmr", "btc"]
+            [
+                "btc",
+                "usd"
+            ],
+            [
+                "eth",
+                "btc"
+            ],
+            [
+                "eth",
+                "usd"
+            ],
+            [
+                "xmr",
+                "usd"
+            ]
         ],
         "period": 900
     },
     "markets": {
         "kraken": {
             "apiKey": "",
-            "apiSecret": "",
-            "otp": ""
+            "apiSecret": ""
         }
     },
     "strategies": {
-        "btc": {
-            "usd": {
-                "name": "HODL",
-                "params": ""
-            }
-        },
         "xmr": {
-            "usd": {
-                "name": "BuyLowAndHodl",
-                "params": {
-                    "low": 0.3,
-                    "stats_period": 604800,
-                    "trade_period": 1200,
-                    "balance_percentage": 0.2
-                },
-            },
-            "btc": {
-                "name": "BuyLowSellHigh",
-                "params": {
-                    "low": 0.01,
-                    "high": 0.02,
-                    "stats_period": 604800,
-                    "trade_period": 1200,
-                    "balance_percentage": 0.01
+            "usd": [
+                {
+                    "name": "DollarCostAveraging",
+                    "params": {
+                        "date": "16 17:30",
+                        "buy": {
+                            "quote": {
+                                "fixed_amount": 100
+                            }
+                        }
+                    }
                 }
-            }
+            ]
+        },
+        "btc": {
+            "usd": [
+                {
+                    "name": "HODL",
+                    "params": {}
+                }
+            ]
         }
     }
 }
@@ -77,7 +88,9 @@ The available markets and exchanges are the one that OpenAT implements. The avai
 ```bash
 mkdir build
 cd build
+# Release
 cmake ..
+# For debug add -DCMAKE_BUILD_TYPE=Debug
 make
 cd ..
 ```
