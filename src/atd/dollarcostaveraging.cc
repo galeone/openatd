@@ -71,10 +71,36 @@ void DollarCostAveraging::buy(const currency_pair_t &pair)
 {
     // This buy strategy should trigger a buy notification
     // when the specified day-hour-minute (UTC) of the month is reached.
+    // At the specified date, it will start waiting for the first downtrend
+    // (in the previous 24h window) and when a loss in the prevous 24h window
+    // is found and it lasted at least 2 hours, then the buy commad it sent.
     while (true) {
         auto date = _next_date();
         std::this_thread::sleep_until(
             std::chrono::system_clock::from_time_t(date));
+
+        std::cout << "[DCA] " << pair << " unlocked. Waiting for the dip\n";
+        while (true) {
+            auto stats_period_ago = std::chrono::system_clock::to_time_t(
+                std::chrono::system_clock::now() - 2h);
+
+            auto currency_history =
+                _monitors->currencyHistory(pair.first, stats_period_ago);
+
+            // check if there's a downtrend in the overall window
+            bool dip = true;
+            for (std::size_t i = 0;
+                 i < static_cast<std::size_t>(currency_history.size()); ++i) {
+                dip = dip && currency_history[i].percent_change_24h < 0;
+            }
+            if (!dip) {
+                std::this_thread::sleep_for(30min);
+            }
+            else {
+                std::cout << "[DCA] " << pair << " dip!\n";
+                break;
+            }
+        }
 
         atd::message_t message = {};
         at::order_t order = {};
