@@ -71,18 +71,9 @@ std::map<std::string, std::shared_ptr<Market>> Config::markets()
         switch (_hash(it.key().c_str())) {
             case _hash("kraken"): {
                 auto value = *it;
-                auto otp = value.find("otp");
-                if (otp != value.end() && *otp != "") {
-                    ret.insert(std::pair(
-                        "kraken", std::make_shared<Kraken>(value["apiKey"],
-                                                           value["apiSecret"],
-                                                           value["otp"])));
-                }
-                else {
-                    ret.insert(std::pair(
-                        "kraken", std::make_shared<Kraken>(
-                                      value["apiKey"], value["apiSecret"])));
-                }
+                ret.insert(std::pair(
+                    "kraken", std::make_shared<Kraken>(value["apiKey"],
+                                                       value["apiSecret"])));
                 std::cout << "Market [Kraken]: initialized\n";
             } break;
             default:
