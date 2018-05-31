@@ -188,6 +188,24 @@ void Trader::intramarket(
 
                             market->place(order);
                         }
+                        else {
+                            _console_logger->info(
+                                "Trader::intramarket-> BUY [FAIL!] "
+                                "Pair: {} "
+                                "Balance: {} "
+                                "Trade balanace: {} "
+                                "Volume: {} "
+                                "Price: {} "
+                                "Estimated cost: {} "
+                                "Estimated fees: {} "
+                                "Min volume: {} "
+                                "Max volume: {} "
+                                "balance - trade_balance - fee: {}",
+                                order.pair, balance, trade_balance,
+                                order.volume, order.price, order.cost, fee,
+                                info.limit.min, info.limit.max,
+                                balance - trade_balance - fee);
+                        }
                     }
                     else {
                         // handle sell order
@@ -234,6 +252,24 @@ void Trader::intramarket(
 
                             market->place(order);
                         }
+                        else {
+                            _console_logger->info(
+                                "Trader::intramarket-> SELL [FAIL!] "
+                                "Pair: {} "
+                                "Balance: {} "
+                                "Trade balanace: {} "
+                                "Volume: {} "
+                                "Price: {} "
+                                "Estimated return: {} "
+                                "Estimated fees: {}"
+                                "Min volume: {} "
+                                "Max volume: {} "
+                                "balance - trade_balance - fee: {}",
+                                order.pair, balance, trade_balance,
+                                order.volume, order.price, order.cost, fee,
+                                info.limit.min, info.limit.max,
+                                balance - trade_balance - fee);
+                        }
                     }
 
                     // Give feedback to the strategy
@@ -267,7 +303,7 @@ void Trader::intramarket(
     std::thread decisor_thread(decisor);
     std::vector<std::thread> buy_strategies;
     std::vector<std::thread> sell_strategies;
-    for (const auto & [ pair, strategy_vector ] : strategies) {
+    for (const auto& [pair, strategy_vector] : strategies) {
         for (const auto strategy : strategy_vector) {
             sell_strategies.push_back(
                 std::thread(&Strategy::sell, strategy.get(), std::ref(pair)));
