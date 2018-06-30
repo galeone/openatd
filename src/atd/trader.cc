@@ -261,7 +261,7 @@ void Trader::intramarket(
                                 "Volume: {} "
                                 "Price: {} "
                                 "Estimated return: {} "
-                                "Estimated fees: {}"
+                                "Estimated fees: {} "
                                 "Min volume: {} "
                                 "Max volume: {} "
                                 "balance - trade_balance - fee: {}",
