@@ -168,7 +168,7 @@ void SmallChanges::sell(const currency_pair_t &pair)
         bool canComparePrice = false;
         auto price_usd = currency_history[chsize - 1].price_usd;
         auto quote = pair.second;
-        double quote_usd_ratio;
+        double quote_usd_ratio = 0;
         // is fiat
         try {
             quote_usd_ratio = _fiat.rate(at::currency_pair_t(quote, "usd"));
