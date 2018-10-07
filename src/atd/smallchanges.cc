@@ -95,7 +95,20 @@ void SmallChanges::buy(const currency_pair_t &pair)
                         std::cout << "[BUY] checking for order: " << order.txid
                                   << " fulfillment" << std::endl;
                         closed = true;
-                        auto openOrders = market->openOrders();
+                        std::vector<at::order_t> openOrders;
+                        auto retry = true;
+                        while (retry) {
+                            try {
+                                openOrders = market->openOrders();
+                                retry = false;
+                            }
+                            catch (const at::server_error &e) {
+                                std::cout << "smallchanges: market->openOrders "
+                                          << e.what() << "\n sleep and retry";
+                                retry = true;
+                                std::this_thread::sleep_for(1min);
+                            }
+                        }
                         for (const auto &openOrder : openOrders) {
                             if (openOrder.txid == order.txid) {
                                 closed = false;
@@ -253,7 +266,20 @@ void SmallChanges::sell(const currency_pair_t &pair)
                                   << " fulfillment" << std::endl;
 
                         closed = true;
-                        auto openOrders = market->openOrders();
+                        std::vector<at::order_t> openOrders;
+                        auto retry = true;
+                        while (retry) {
+                            try {
+                                openOrders = market->openOrders();
+                                retry = false;
+                            }
+                            catch (const at::server_error &e) {
+                                std::cout << "smallchanges: market->openOrders "
+                                          << e.what() << "\n sleep and retry";
+                                retry = true;
+                                std::this_thread::sleep_for(1min);
+                            }
+                        }
                         for (const auto &openOrder : openOrders) {
                             if (openOrder.txid == order.txid) {
                                 closed = false;
