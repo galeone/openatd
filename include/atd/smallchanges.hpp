@@ -44,7 +44,7 @@ public:
         _buy_quantity = buy_quantity;
         _sell_quantity = sell_quantity;
         _feedback = std::make_shared<channel<feedback_t>>();
-        _stats_period = 48h;
+        _stats_period = 96h;
         _trade_period = 90min;
         _margin_profit_percentage = 0.1;
         _dip_percentage = 0.1;
