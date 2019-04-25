@@ -71,6 +71,9 @@ void exception_handler(std::shared_ptr<spdlog::logger> error_logger)
         catch (const std::logic_error& e) {
             error_logger->error("{}: std::logic_error: {}", tid, e.what());
         }
+        catch (const std::runtime_error& e) {
+            error_logger->error("{}: std::runtime_error {}", tid, e.what());
+        }
         catch (...) {
             error_logger->error("{}: {}: unknown failure", tid,
                                 typeid(std::current_exception()).name());
