@@ -12,6 +12,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.*/
 
+#include <spdlog/sinks/rotating_file_sink.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
+#include <spdlog/sinks/syslog_sink.h>
 #include <spdlog/spdlog.h>
 #include <atd/channel.hpp>
 #include <atd/config.hpp>
