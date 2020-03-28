@@ -16,6 +16,7 @@
 #define ATD_DOLLAR_COST_AVERAGING_STRATEGY_H_
 
 #include <atd/hodl.hpp>
+#include <iomanip>
 
 namespace atd {
 

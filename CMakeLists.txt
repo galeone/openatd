@@ -30,11 +30,6 @@ set(OPENAT_SOURCE_DIR "${PROJECT_SOURCE_DIR}/libs/openat")
 set(OPENAT_INCLUDE_DIR "${OPENAT_SOURCE_DIR}/include")
 add_subdirectory(${OPENAT_SOURCE_DIR})
 
-
-# Spdlog is a header-only library
-set(SPDLOG "${PROJECT_SOURCE_DIR}/libs/spdlog")
-set(SPDLOG_INCLUDE_DIR "${SPDLOG}/include")
-
 set(SQLITECPP "${PROJECT_SOURCE_DIR}/libs/SQLiteCpp")
 set(SQLITECPP_INCLUDE_DIR "${SQLITECPP}/include")
 # Compile and define SQLiteCpp
