@@ -12,6 +12,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.*/
 
+#include <spdlog/sinks/rotating_file_sink.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
+#include <spdlog/sinks/syslog_sink.h>
 #include <spdlog/spdlog.h>
 #include <atd/channel.hpp>
 #include <atd/config.hpp>
@@ -70,6 +73,9 @@ void exception_handler(std::shared_ptr<spdlog::logger> error_logger)
         }
         catch (const std::logic_error& e) {
             error_logger->error("{}: std::logic_error: {}", tid, e.what());
+        }
+        catch (const std::runtime_error& e) {
+            error_logger->error("{}: std::runtime_error {}", tid, e.what());
         }
         catch (...) {
             error_logger->error("{}: {}: unknown failure", tid,

@@ -102,7 +102,7 @@ void DataMonitor::pairs(const std::vector<currency_pair_t>& pairs)
                             "VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
 
     while (true) {
-        for (const auto & [ base, quotes ] : aggregator) {
+        for (const auto& [base, quotes] : aggregator) {
             auto markets = _cmc->markets(base);
             for (const auto& market : markets) {
                 if (quotes.find(market.pair.second) != quotes.end()) {
