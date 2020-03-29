@@ -114,7 +114,7 @@ void DataMonitor::pairs(const std::vector<currency_pair_t>& pairs)
                 }
             }
             // required because of cmc "api" limits
-            std::this_thread::sleep_for(std::chrono::seconds(2));
+            std::this_thread::sleep_for(std::chrono::seconds(10));
         }
         std::this_thread::sleep_for(_period);
     }
