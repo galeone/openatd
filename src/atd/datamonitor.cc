@@ -26,9 +26,7 @@ DataMonitor::DataMonitor(SQLite::Database* db,
         "base text,"
         "quote text,"
         "day_volume_usd big int,"
-        "day_volume_btc double,"
         "price_usd double,"
-        "price_btc double,"
         "percent_volume real,"
         "time datetime default current_timestamp)");
     _db->exec(
@@ -97,9 +95,9 @@ void DataMonitor::pairs(const std::vector<currency_pair_t>& pairs)
 
     SQLite::Statement query(*_db,
                             "INSERT INTO monitored_pairs("
-                            "market,base,quote,day_volume_usd, day_volume_btc,"
-                            "price_usd,price_btc,percent_volume)"
-                            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                            "market,base,quote,day_volume_usd,"
+                            "price_usd,percent_volume)"
+                            "VALUES (?, ?, ?, ?, ?, ?)");
 
     while (true) {
         for (const auto& [base, quotes] : aggregator) {
@@ -108,8 +106,7 @@ void DataMonitor::pairs(const std::vector<currency_pair_t>& pairs)
                 if (quotes.find(market.pair.second) != quotes.end()) {
                     SQLite::bind(query, market.name, market.pair.first,
                                  market.pair.second, market.day_volume_usd,
-                                 market.day_volume_btc, market.price_usd,
-                                 market.price_btc, market.percent_volume);
+                                 market.price_usd, market.percent_volume);
                     query.exec();
                     // Reset prepared statement, so it's ready to be
                     // re-executed
@@ -130,8 +127,8 @@ std::vector<cm_market_t> DataMonitor::pairHistory(const currency_pair_t& pair,
 {
     SQLite::Statement query(
         *_db,
-        "SELECT market,day_volume_usd,day_volume_btc,"
-        "price_usd,price_btc,percent_volume, strftime('%s', time) as timestamp "
+        "SELECT market,day_volume_usd,"
+        "price_usd,percent_volume, strftime('%s', time) as timestamp "
         "FROM monitored_pairs "
         "WHERE base = ? AND quote = ? AND time >= datetime(?, 'unixepoch') "
         "ORDER BY timestamp ASC");
@@ -143,9 +140,7 @@ std::vector<cm_market_t> DataMonitor::pairHistory(const currency_pair_t& pair,
             .name = query.getColumn("market"),
             .pair = pair,
             .day_volume_usd = query.getColumn("day_volume_usd"),
-            .day_volume_btc = query.getColumn("day_volume_btc"),
             .price_usd = query.getColumn("price_usd"),
-            .price_btc = query.getColumn("price_btc"),
             .percent_volume = static_cast<float>(
                 query.getColumn("percent_volume").getDouble()),
             .last_updated = static_cast<std::time_t>(
